@@ -1,0 +1,122 @@
+# ==========================================
+#  U L T I M A T E   C + +   M A K E F I L E
+#  (no unnecessary relinking)
+# ==========================================
+
+# -------- Project name (default: folder name) --------
+NAME        ?= $(notdir $(CURDIR))
+
+# -------- Toolchain --------
+CXX         ?= c++
+REQFLAGS    := -Wall -Wextra -Werror -std=c++98
+DEPFLAGS    := -MMD -MP
+CXXFLAGS    ?=
+CXXFLAGS    += $(REQFLAGS) $(DEPFLAGS)
+LDFLAGS     ?=
+
+# -------- Output / build directories --------
+OBJDIR      := build
+BANNER_STAMP:= $(OBJDIR)/.banner_once
+
+# # -------- Pretty colors --------
+# COLOR       ?= 1
+# ifeq ($(COLOR),1)
+#   BOLD  := \033[1m; DIM := \033[2m; RED := \033[31m; GRN := \033[32m; YLW := \033[33m
+#   BLU   := \033[34m; MAG := \033[35m; CYN := \033[36m; RST := \033[0m
+# else
+#   BOLD  := ; DIM := ; RED := ; GRN := ; YLW := ; BLU := ; MAG := ; CYN := ; RST :=
+# endif
+
+# -------- Discover sources recursively --------
+SRC_EXT     := cpp cc cxx
+SRC_FILES   := $(foreach ext,$(SRC_EXT), \
+                 $(shell find . -type f -name '*.$(ext)' ! -path './$(OBJDIR)/*' -print))
+SRCS        := $(patsubst ./%,%,$(SRC_FILES))
+OBJS        := $(addprefix $(OBJDIR)/,$(SRCS:.cpp=.o))
+OBJS        := $(OBJS:.cc=.o)
+OBJS        := $(OBJS:.cxx=.o)
+DEPS        := $(OBJS:.o=.d)
+
+# -------- Discover include directories automatically --------
+HDR_DIRS    := $(shell \
+                 find . -type f \( -name '*.hpp' -o -name '*.hh' -o -name '*.h' \) \
+                 ! -path './$(OBJDIR)/*' -printf '%h\n' | sort -u)
+INCLUDE_DIRS := . $(HDR_DIRS)
+CPPFLAGS    += $(addprefix -I,$(INCLUDE_DIRS))
+
+# -------- Default goal --------
+.PHONY: all
+all: $(NAME)
+
+# -------- Link rule (no relink on no-op) --------
+$(NAME): $(OBJS)
+	@# Print banner once if we are actually linking (objects are newer)
+	@mkdir -p $(OBJDIR)
+	@sh -c 'set -C; : > "$(BANNER_STAMP)" 2>/dev/null && { \
+	  printf "$(DIM)C++: $(CXX) | Flags:$(RST) $(REQFLAGS) $(DIM)| +user:$(RST) $(filter-out $(REQFLAGS) $(DEPFLAGS),$(CXXFLAGS))\n"; \
+	  printf "$(DIM)Includes:$(RST) $(INCLUDE_DIRS)\n"; \
+	  printf "$(DIM)Sources:$(RST) $(words $(SRCS)) file(s)\n"; \
+	} || :'
+	@printf "$(BOLD)$(BLU)[LINK]$(RST) $(NAME)\n"
+	@$(CXX) $(LDFLAGS) $(OBJS) -o $@
+	@printf "$(GRN)✔ Built $(NAME)$(RST)\n"
+
+# -------- Pattern rules (print banner once on first compile) --------
+$(OBJDIR)/%.o: %.cpp
+	@mkdir -p $(dir $@) $(OBJDIR)
+	@sh -c 'set -C; : > "$(BANNER_STAMP)" 2>/dev/null && { \
+	  printf "$(DIM)C++: $(CXX) | Flags:$(RST) $(REQFLAGS) $(DIM)| +user:$(RST) $(filter-out $(REQFLAGS) $(DEPFLAGS),$(CXXFLAGS))\n"; \
+	  printf "$(DIM)Includes:$(RST) $(INCLUDE_DIRS)\n"; \
+	  printf "$(DIM)Sources:$(RST) $(words $(SRCS)) file(s)\n"; \
+	} || :'
+	@printf "$(BOLD)$(CYN)[CXX]$(RST) $< -> $(DIM)$@$(RST)\n"
+	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+
+$(OBJDIR)/%.o: %.cc
+	@mkdir -p $(dir $@) $(OBJDIR)
+	@sh -c 'set -C; : > "$(BANNER_STAMP)" 2>/dev/null && { \
+	  printf "$(DIM)C++: $(CXX) | Flags:$(RST) $(REQFLAGS) $(DIM)| +user:$(RST) $(filter-out $(REQFLAGS) $(DEPFLAGS),$(CXXFLAGS))\n"; \
+	  printf "$(DIM)Includes:$(RST) $(INCLUDE_DIRS)\n"; \
+	  printf "$(DIM)Sources:$(RST) $(words $(SRCS)) file(s)\n"; \
+	} || :'
+	@printf "$(BOLD)$(CYN)[CXX]$(RST) $< -> $(DIM)$@$(RST)\n"
+	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+
+$(OBJDIR)/%.o: %.cxx
+	@mkdir -p $(dir $@) $(OBJDIR)
+	@sh -c 'set -C; : > "$(BANNER_STAMP)" 2>/dev/null && { \
+	  printf "$(DIM)C++: $(CXX) | Flags:$(RST) $(REQFLAGS) $(DIM)| +user:$(RST) $(filter-out $(REQFLAGS) $(DEPFLAGS),$(CXXFLAGS))\n"; \
+	  printf "$(DIM)Includes:$(RST) $(INCLUDE_DIRS)\n"; \
+	  printf "$(DIM)Sources:$(RST) $(words $(SRCS)) file(s)\n"; \
+	} || :'
+	@printf "$(BOLD)$(CYN)[CXX]$(RST) $< -> $(DIM)$@$(RST)\n"
+	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+
+# -------- Housekeeping --------
+.PHONY: clean
+clean:
+	@printf "$(BOLD)$(YLW)[CLEAN]$(RST) object files and deps under $(OBJDIR)\n"
+	@rm -rf $(OBJDIR)
+
+.PHONY: fclean
+fclean: clean
+	@printf "$(BOLD)$(YLW)[FCLEAN]$(RST) binary $(NAME)\n"
+	@rm -f $(NAME)
+
+.PHONY: re
+re: fclean all
+
+# -------- QoL --------
+$(OBJDIR):
+	@mkdir -p $(OBJDIR)
+
+-include $(DEPS)
+
+.PHONY: help
+help:
+	@printf "$(BOLD)Targets:$(RST)\n"
+	@printf "  all / $(NAME)  Build the project\n"
+	@printf "  clean          Remove object files and .d files\n"
+	@printf "  fclean         Also remove the binary\n"
+	@printf "  re             Rebuild from scratch\n"
+	@printf "  help           This message\n"

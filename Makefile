@@ -1,6 +1,6 @@
 NAME = webserv
 CC = c++
-CFLAGS = -Wall -Wextra -Werror -std=c++98 -fsanitize=address
+CFLAGS = -std=c++98 #-Wall -Wextra -Werror #-fsanitize=address
 SRCS = $(wildcard *.cpp)
 RM = rm -f
 

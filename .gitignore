@@ -40,3 +40,8 @@
 # debug information files
 *.dwo
 *tester
+
+/.vscode
+webserv
+en.subject.pdf
+*.pdf

@@ -17,5 +17,9 @@
 #include <sys/select.h>       // select, FD_SET, FD_CLR, FD_ISSET, FD_ZERO
 #include <poll.h>             // poll
 #include <sys/epoll.h>        // epoll_create, epoll_ctl, epoll_wait
+#include <iostream>
+#include <string>
+#include <fstream>
+#include <sstream>
 
 #endif
